@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.github
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+venv_py311/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Скрипты установки и запуска
+install_python.sh
+setup_bot.sh
+setup_venv.sh
+run_bot.sh
+
+# Логи
+*.log
+
+# Виртуальное окружение
+.env.local
+.env.development
+.env.test
+
+# Файлы редакторов
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Прочее
+.DS_Store
+node_modules/ 

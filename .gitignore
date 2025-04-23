@@ -1,0 +1,72 @@
+# Environments
+.env
+.venv
+env/
+venv/
+venv_py311/
+venv_bot/
+ENV/
+env.bak/
+venv.bak/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.log
+
+# Логи
+*.log
+logs/
+
+# Файлы редакторов
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Временные файлы
+.DS_Store
+Thumbs.db
+
+# Специфичные файлы проекта
+run_bot.sh
+
+# Виртуальные окружения
+venv/
+venv_test/
+venv_bot/
+venv_py311/
+.venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Локальные настройки
+.env.local
+*.env
+
+# Базы данных
+*.sqlite3
+*.db
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Временные файлы
+*.tmp
+*.bak
+*.swp
+*~
+
+# Логи и кэш
+.cache/
+.pytest_cache/ 

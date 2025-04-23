@@ -1,0 +1,8 @@
+python-telegram-bot==20.7
+aiohttp==3.8.5
+pymongo==4.5.0
+python-dotenv==1.0.0
+motor==3.2.0
+# Раскомментируйте одну из строк ниже в зависимости от предпочитаемого пакета для YooKassa
+pyyukassa==2.0.0
+# yookassa==2.4.0 
