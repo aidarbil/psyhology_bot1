@@ -7,6 +7,7 @@ import config
 from database import get_user, deduct_tokens, add_message_to_history
 from services import ai_service  # Используем умный выбор агента
 from handlers.menu import handle_review_text  # Импортируем обработчик отзывов
+from services.subscription import subscription_service
 
 # Настраиваем логирование
 logger = logging.getLogger(__name__)
@@ -38,6 +39,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await context.bot.send_message(
             chat_id=chat_id,
             text="Пожалуйста, используйте команду /start для начала работы с ботом.",
+            reply_markup=reply_markup
+        )
+        return
+    
+    # Проверяем подписку пользователя на канал
+    is_subscribed = await subscription_service.check_subscription(user_id)
+    if not is_subscribed and not config.TEST_MODE and config.CHANNEL_ID:
+        logger.info(f"Пользователь {user_id} не подписан на канал")
+        channel_link = subscription_service.get_channel_link()
+        
+        keyboard = [
+            [InlineKeyboardButton("📢 Подписаться на канал", url=channel_link)],
+            [InlineKeyboardButton("✅ Проверить подписку", callback_data="check_subscription")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                "⚠️ Для использования бота необходимо подписаться на наш канал.\n\n"
+                f"Подпишитесь на канал и получите {config.FREE_TOKENS} Майндтокенов бесплатно!\n"
+                f"Этого хватит на {config.FREE_TOKENS // config.TOKENS_PER_MESSAGE} вопросов."
+            ),
             reply_markup=reply_markup
         )
         return
