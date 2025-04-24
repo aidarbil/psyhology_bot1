@@ -157,5 +157,5 @@ async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     
     # Возвращаемся к основному меню
-    from handlers.start import start_command
-    await start_command(update, context) 
+    from handlers.start import show_main_menu
+    await show_main_menu(update, context, show_description=False) 

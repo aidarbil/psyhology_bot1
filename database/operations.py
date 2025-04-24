@@ -1,9 +1,10 @@
 import motor.motor_asyncio
 from typing import Dict, List, Optional, Union
 from datetime import datetime
+import uuid
 
 import config
-from database.models import User, Payment
+from database.models import User, Payment, Review
 
 # Подключение к MongoDB
 client = motor.motor_asyncio.AsyncIOMotorClient(config.MONGO_URI)
@@ -12,6 +13,7 @@ db = client[config.DB_NAME]
 # Коллекции
 users_collection = db['users']
 payments_collection = db['payments']
+reviews_collection = db['reviews']
 
 # Операции с пользователями
 async def get_user(user_id: int) -> Optional[User]:
@@ -140,4 +142,71 @@ async def get_user_payments(user_id: int) -> List[Payment]:
     payments = []
     async for payment_data in cursor:
         payments.append(Payment.from_dict(payment_data))
-    return payments 
+    return payments
+
+# Операции с отзывами
+async def create_review(user_id: int, text: str, rating: Optional[int] = None) -> Review:
+    """Создать новый отзыв"""
+    review = Review(
+        review_id=str(uuid.uuid4()),
+        user_id=user_id,
+        text=text,
+        rating=rating
+    )
+    await reviews_collection.insert_one(review.to_dict())
+    return review
+
+async def get_user_reviews(user_id: int) -> List[Review]:
+    """Получить все отзывы пользователя"""
+    cursor = reviews_collection.find({'user_id': user_id})
+    reviews = []
+    async for review_data in cursor:
+        reviews.append(Review.from_dict(review_data))
+    return reviews
+
+async def get_all_reviews() -> List[Review]:
+    """Получить все отзывы"""
+    cursor = reviews_collection.find()
+    reviews = []
+    async for review_data in cursor:
+        reviews.append(Review.from_dict(review_data))
+    return reviews
+
+# Операции с реферальной системой
+async def generate_referral_code(user_id: int) -> str:
+    """Генерировать или получить существующий реферальный код пользователя"""
+    user = await get_user(user_id)
+    if user and not user.referral_code:
+        # Генерируем уникальный код
+        referral_code = str(uuid.uuid4())[:8]
+        user.referral_code = referral_code
+        await update_user(user)
+    return user.referral_code if user else None
+
+async def get_user_by_referral_code(referral_code: str) -> Optional[User]:
+    """Найти пользователя по реферальному коду"""
+    user_data = await users_collection.find_one({'referral_code': referral_code})
+    return User.from_dict(user_data) if user_data else None
+
+async def process_referral(user_id: int, referrer_code: str) -> bool:
+    """Обработать реферальный код и начислить бонусы"""
+    # Получаем реферера (того, кто пригласил)
+    referrer = await get_user_by_referral_code(referrer_code)
+    if not referrer or referrer.user_id == user_id:
+        return False
+    
+    # Получаем реферала (того, кого пригласили)
+    user = await get_user(user_id)
+    if not user or user.referred_by:
+        return False
+    
+    # Обновляем данные реферала
+    user.referred_by = referrer.user_id
+    await update_user(user)
+    
+    # Обновляем статистику реферера и начисляем бонус
+    referrer.referral_count += 1
+    referrer.tokens += config.REFERRAL_BONUS_TOKENS
+    await update_user(referrer)
+    
+    return True 

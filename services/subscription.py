@@ -12,14 +12,28 @@ logger = logging.getLogger(__name__)
 class SubscriptionService:
     """Сервис для проверки подписки на канал"""
     
-    @staticmethod
-    async def check_subscription(bot: Bot, user_id: int) -> bool:
+    def __init__(self):
+        self._bot = None
+    
+    def set_bot(self, bot: Bot) -> None:
+        """Установить экземпляр бота для проверки подписки"""
+        self._bot = bot
+    
+    async def check_subscription(self, user_id: int) -> bool:
         """Проверить, подписан ли пользователь на канал"""
         try:
+            if not self._bot:
+                logger.error("Бот не инициализирован в сервисе подписки")
+                return False
+                
+            if not config.CHANNEL_ID:
+                logger.error("ID канала не настроен в конфигурации")
+                return False
+            
             logger.info(f"Проверка подписки пользователя {user_id} на канал {config.CHANNEL_ID}")
             
             # Пробуем получить статус пользователя в канале
-            chat_member = await bot.get_chat_member(chat_id=config.CHANNEL_ID, user_id=user_id)
+            chat_member = await self._bot.get_chat_member(chat_id=config.CHANNEL_ID, user_id=user_id)
             
             # Проверяем статус участника
             status = chat_member.status

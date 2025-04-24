@@ -6,7 +6,7 @@ load_dotenv()
 
 # Telegram Bot
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-BOT_USERNAME = os.getenv('BOT_USERNAME', 'your_bot_username')  # Имя пользователя бота
+BOT_USERNAME = os.getenv('BOT_USERNAME', 'psychologybilalov_bot')  # Имя пользователя бота
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 CHANNEL_URL = os.getenv('CHANNEL_URL')
 ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS', '').split(',')))
@@ -20,8 +20,9 @@ AI_AGENT_URL = os.getenv('AI_AGENT_URL', 'https://api.bilalov.ai/api/message')
 AI_AGENT_ID = os.getenv('AI_AGENT_ID', 'ed3ca89f25ba41b1a5c6')
 
 # Токены
-FREE_TOKENS = 50  # Количество бесплатных токенов за подписку
+FREE_TOKENS = 500  # Количество бесплатных токенов за подписку
 TOKENS_PER_MESSAGE = 10  # Стоимость одного сообщения в токенах
+REFERRAL_BONUS_TOKENS = 10  # Бонусные токены за приглашенного пользователя
 
 # Тарифы
 TARIFFS = {

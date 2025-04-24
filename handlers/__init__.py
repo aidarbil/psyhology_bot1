@@ -1,4 +1,4 @@
-from handlers.start import start_command
+from handlers.start import start_command, menu_command
 from handlers.chat import handle_message, start_chat_callback
 from handlers.payment import (
     buy_tokens_callback,
@@ -18,6 +18,7 @@ from handlers.admin import (
 
 __all__ = [
     'start_command',
+    'menu_command',
     'handle_message',
     'start_chat_callback',
     'buy_tokens_callback',

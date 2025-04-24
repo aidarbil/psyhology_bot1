@@ -6,13 +6,16 @@ from services.vector_memory import vector_memory_service
 import logging
 import importlib.util
 from config import TEST_MODE
+from utils.logging_config import setup_logging, get_logger
 
-# Настраиваем логирование
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Инициализируем логирование
+setup_logging(
+    log_level='INFO',
+    log_file='logs/services.log',
+    max_bytes=10 * 1024 * 1024,  # 10 MB
+    backup_count=5
 )
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Проверяем наличие модуля YooKassa
 has_yookassa = importlib.util.find_spec('yookassa') is not None

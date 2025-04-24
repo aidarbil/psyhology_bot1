@@ -14,7 +14,10 @@ class User:
         is_unlimited: bool = False,
         created_at: datetime = None,
         last_activity: datetime = None,
-        chat_history: Optional[List[Dict]] = None
+        chat_history: Optional[List[Dict]] = None,
+        referral_code: Optional[str] = None,
+        referred_by: Optional[int] = None,
+        referral_count: int = 0
     ):
         self.user_id = user_id
         self.username = username
@@ -26,6 +29,9 @@ class User:
         self.created_at = created_at or datetime.now()
         self.last_activity = last_activity or datetime.now()
         self.chat_history = chat_history or []
+        self.referral_code = referral_code
+        self.referred_by = referred_by
+        self.referral_count = referral_count
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'User':
@@ -39,7 +45,10 @@ class User:
             is_unlimited=data.get('is_unlimited', False),
             created_at=data.get('created_at'),
             last_activity=data.get('last_activity'),
-            chat_history=data.get('chat_history', [])
+            chat_history=data.get('chat_history', []),
+            referral_code=data.get('referral_code'),
+            referred_by=data.get('referred_by'),
+            referral_count=data.get('referral_count', 0)
         )
     
     def to_dict(self) -> Dict:
@@ -53,7 +62,10 @@ class User:
             'is_unlimited': self.is_unlimited,
             'created_at': self.created_at,
             'last_activity': self.last_activity,
-            'chat_history': self.chat_history
+            'chat_history': self.chat_history,
+            'referral_code': self.referral_code,
+            'referred_by': self.referred_by,
+            'referral_count': self.referral_count
         }
 
 # Модель платежа
@@ -101,4 +113,39 @@ class Payment:
             'status': self.status,
             'created_at': self.created_at,
             'completed_at': self.completed_at
+        }
+
+# Модель отзыва
+class Review:
+    def __init__(
+        self,
+        review_id: str,
+        user_id: int,
+        text: str,
+        rating: Optional[int] = None,
+        created_at: datetime = None
+    ):
+        self.review_id = review_id
+        self.user_id = user_id
+        self.text = text
+        self.rating = rating
+        self.created_at = created_at or datetime.now()
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Review':
+        return cls(
+            review_id=data.get('review_id'),
+            user_id=data.get('user_id'),
+            text=data.get('text'),
+            rating=data.get('rating'),
+            created_at=data.get('created_at')
+        )
+    
+    def to_dict(self) -> Dict:
+        return {
+            'review_id': self.review_id,
+            'user_id': self.user_id,
+            'text': self.text,
+            'rating': self.rating,
+            'created_at': self.created_at
         } 

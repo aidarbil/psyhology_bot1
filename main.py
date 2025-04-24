@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import (
@@ -10,10 +11,15 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
+import httpx
+import asyncio
 
 import config
+from utils.logging_config import setup_logging, get_logger
+from services import subscription_service
 from handlers import (
     start_command,
+    menu_command,
     handle_message,
     start_chat_callback,
     buy_tokens_callback,
@@ -28,13 +34,26 @@ from handlers import (
     admin_back_callback,
     handle_admin_commands
 )
-
-# Настройка логирования
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+from handlers.menu import (
+    show_description,
+    show_review_form,
+    handle_review_text,
+    show_referral_menu
 )
-logger = logging.getLogger(__name__)
+
+# Загружаем переменные окружения
+load_dotenv()
+
+# Настраиваем логирование с уровнем DEBUG
+setup_logging(log_level='DEBUG')
+logger = get_logger(__name__)
+
+# Проверяем наличие токена
+if not config.TELEGRAM_TOKEN:
+    logger.error("TELEGRAM_TOKEN не найден!")
+    sys.exit(1)
+else:
+    logger.info(f"TELEGRAM_TOKEN найден, длина: {len(config.TELEGRAM_TOKEN)}")
 
 async def setup_webhook(app: Application) -> None:
     """Настройка вебхука для продакшн окружения"""
@@ -55,6 +74,7 @@ def register_handlers(app: Application) -> None:
     """Регистрация обработчиков команд и колбэков"""
     # Обработчики команд
     app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("menu", menu_command))
     app.add_handler(CommandHandler("admin", admin_command))
     
     # Обработчики колбэков (кнопок)
@@ -64,6 +84,12 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CallbackQueryHandler(check_payment_callback, pattern="^check_payment:"))
     app.add_handler(CallbackQueryHandler(back_to_main_callback, pattern="^back_to_main$"))
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_subscription$"))
+    
+    # Обработчики новых кнопок меню
+    app.add_handler(CallbackQueryHandler(show_description, pattern="^show_description$"))
+    app.add_handler(CallbackQueryHandler(show_review_form, pattern="^show_review_form$"))
+    app.add_handler(CallbackQueryHandler(show_referral_menu, pattern="^show_referral$"))
+    app.add_handler(CallbackQueryHandler(back_to_main_callback, pattern="^main_menu$"))
     
     # Обработчики колбэков администратора
     app.add_handler(CallbackQueryHandler(admin_stats_callback, pattern="^admin_stats$"))
@@ -97,50 +123,83 @@ async def process_yukassa_notification(update: Update, context: ContextTypes.DEF
         return {"success": False, "error": str(e)}
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Глобальный обработчик ошибок"""
-    logger.error(f"Exception while handling an update: {context.error}")
+    """Глобальный обработчик ошибок с расширенным логированием"""
+    logger.error("Exception while handling an update:", exc_info=context.error)
+    
+    # Получаем информацию об обновлении
+    if update:
+        if isinstance(update, Update):
+            user_id = update.effective_user.id if update.effective_user else "Unknown"
+            chat_id = update.effective_chat.id if update.effective_chat else "Unknown"
+            message_text = update.effective_message.text if update.effective_message else "No message"
+            
+            logger.error(
+                "Update info: user_id=%s, chat_id=%s, message='%s'",
+                user_id, chat_id, message_text
+            )
+        else:
+            logger.error("Update object is not of type Update: %s", str(update))
+    
+    # Логируем дополнительный контекст ошибки
+    if context and context.chat_data:
+        logger.error("Chat data: %s", str(context.chat_data))
+    if context and context.user_data:
+        logger.error("User data: %s", str(context.user_data))
+        
+    # Если это критическая ошибка - отправляем уведомление администратору
+    if isinstance(context.error, (SystemError, KeyError, AttributeError)):
+        logger.critical(
+            "Critical error occurred: %s\nTraceback: %s",
+            str(context.error),
+            context.error.__traceback__
+        )
 
 def main() -> None:
-    """Запуск бота"""
-    # Проверяем наличие токена
-    if not config.TELEGRAM_TOKEN:
-        logger.error("TELEGRAM_TOKEN not found. Please set it in .env file.")
-        return
+    """Запуск бота."""
+    logger.info("Initializing bot...")
     
-    # Создаем экземпляр приложения
-    app = Application.builder().token(config.TELEGRAM_TOKEN).build()
+    # Создаем приложение и добавляем обработчик ошибок
+    application = (
+        Application.builder()
+        .token(config.TELEGRAM_TOKEN)
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
+        .write_timeout(30.0)
+        .build()
+    )
+    logger.info("Application built successfully")
+    
+    # Инициализируем бота в сервисе подписки
+    subscription_service.set_bot(application.bot)
+    logger.info("Subscription service initialized with bot instance")
+    
+    # Настраиваем вебхук если URL предоставлен
+    if os.getenv('WEBHOOK_URL'):
+        logger.info("Setting up webhook at %s", os.getenv('WEBHOOK_URL'))
+        setup_webhook(application)
+        logger.info("Webhook setup completed")
     
     # Регистрируем обработчики
-    register_handlers(app)
+    logger.info("Registering handlers...")
+    register_handlers(application)
+    logger.info("Handlers registered successfully")
     
-    # Регистрируем обработчик ошибок
-    app.add_error_handler(error_handler)
+    # Добавляем обработчик ошибок
+    application.add_error_handler(error_handler)
+    logger.info("Error handler added")
     
-    # Настраиваем вебхук или запускаем в режиме поллинга
-    is_production = os.getenv('ENVIRONMENT', 'development') == 'production'
-    
-    if is_production:
-        # В продакшн режиме используем вебхуки
-        webhook_path = os.getenv('WEBHOOK_PATH', f'/webhook/{config.TELEGRAM_TOKEN}')
-        port = int(os.getenv('PORT', 8000))
-        
-        # Настраиваем вебхук при запуске
-        app.post_init = setup_webhook
-        
-        # Регистрируем обработчик для уведомлений от ЮKassa
-        app.add_handler(CommandHandler("yukassa_webhook", process_yukassa_notification))
-        
-        # Запускаем бота с вебхуком
-        app.run_webhook(
-            listen='0.0.0.0',
-            port=port,
-            webhook_url=None,  # Будет установлен в setup_webhook
-            secret_token=os.getenv('WEBHOOK_SECRET', ''),
-            drop_pending_updates=True
+    # Запускаем бота
+    if os.getenv('WEBHOOK_URL'):
+        logger.info("Starting bot in webhook mode")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=os.getenv('PORT', 8443),
+            webhook_url=os.getenv('WEBHOOK_URL'),
+            secret_token=os.getenv('WEBHOOK_SECRET', '')
         )
     else:
-        # В режиме разработки используем поллинг
-        app.run_polling(drop_pending_updates=True)
+        logger.info("Starting bot in polling mode")
+        application.run_polling()
 
 if __name__ == '__main__':
     main() 
