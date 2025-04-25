@@ -4,6 +4,7 @@ from services.subscription import subscription_service
 from services.vector_memory import vector_memory_service
 
 import logging
+import sys
 import importlib.util
 from config import TEST_MODE
 from utils.logging_config import setup_logging, get_logger
@@ -17,8 +18,14 @@ setup_logging(
 )
 logger = get_logger(__name__)
 
-# Проверяем наличие модуля YooKassa
-has_yookassa = importlib.util.find_spec('yookassa') is not None
+# Проверяем наличие модуля YooKassa более надежным способом
+try:
+    import yookassa
+    has_yookassa = True
+    logger.info(f"✅ YooKassa найдена, версия: {yookassa.__version__}")
+except ImportError as e:
+    has_yookassa = False
+    logger.error(f"❌ Ошибка импорта YooKassa: {str(e)}")
 
 # Всегда используем настоящий AI агент вместо мока
 ai_service = ai_agent
@@ -29,14 +36,23 @@ if TEST_MODE:
     logger.info("🧪 Запуск в тестовом режиме. Используется фиктивный платежный сервис.")
     from .payment_mock import payment_service
 elif not has_yookassa:
-    logger.info("💰 Модуль YooKassa не найден. Используется бесплатный режим.")
+    logger.info("💰 YooKassa не найдена. Используется бесплатный режим.")
     from .payment_free import payment_service
 else:
     try:
         logger.info("💰 Используется платежный сервис YooKassa.")
         from .payment_yookassa import payment_service
-    except ImportError:
-        logger.warning("Ошибка импорта YooKassa, переключаемся на бесплатный платежный сервис")
+        # Проверка инициализации
+        if not getattr(payment_service, 'YOOKASSA_INITIALIZED', False):
+            logger.warning("⚠️ YooKassa не инициализирована, переключаемся на бесплатный платежный сервис")
+            from .payment_free import payment_service
+    except ImportError as e:
+        logger.warning(f"❌ Ошибка импорта payment_yookassa: {str(e)}")
+        logger.warning("⚠️ Переключаемся на бесплатный платежный сервис")
+        from .payment_free import payment_service
+    except Exception as e:
+        logger.error(f"❌ Непредвиденная ошибка при импорте YooKassa: {str(e)}")
+        logger.warning("⚠️ Переключаемся на бесплатный платежный сервис")
         from .payment_free import payment_service
 
 __all__ = [
