@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes
 import logging
 
 import config
-from database import get_user, get_or_create_user
+from database import get_user, get_or_create_user, add_tokens, set_subscription_status
 from services import subscription_service
 from handlers.menu import process_referral_code
 
@@ -97,9 +97,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Обработчик команды /start"""
     user_id = update.effective_user.id
     username = update.effective_user.username
+    first_name = update.effective_user.first_name
+    last_name = update.effective_user.last_name
     
     # Создаем пользователя, если его нет в базе
-    user = await get_or_create_user(user_id, username)
+    user = await get_or_create_user(user_id, username, first_name, last_name)
+    
+    # Если пользователь новый (токены = 0) и не отмечен как подписанный
+    if user.tokens == 0 and not user.is_subscribed:
+        # Проверяем, подписан ли пользователь на канал
+        is_subscribed = await subscription_service.check_subscription(user_id)
+        if is_subscribed:
+            # Если подписан, начисляем токены и отмечаем как подписанного
+            logger.info(f"Пользователь {user_id} уже подписан на канал при первом входе, начисляем {config.FREE_TOKENS} токенов")
+            await add_tokens(user_id, config.FREE_TOKENS)
+            await set_subscription_status(user_id, True)
+            
+            # Получаем обновленные данные пользователя
+            user = await get_user(user_id)
+            
+            # Отправляем уведомление о бонусе
+            await update.message.reply_text(
+                f"🎁 Спасибо за подписку на наш канал! Вам начислено {config.FREE_TOKENS} Майндтокенов в подарок!\n"
+                f"💎 Ваш текущий баланс: {user.tokens} Майндтокенов."
+            )
     
     # Проверяем реферальный код
     if context.args and context.args[0].startswith('ref_'):
