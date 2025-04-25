@@ -1,11 +1,12 @@
 import uuid
 import logging
+import time
 from typing import Dict, Optional, Any, Tuple
 from datetime import datetime, timedelta
 
 from config import TARIFFS, BOT_USERNAME
 from database.models import Payment
-from database import create_payment, update_payment_status, add_tokens, set_unlimited_status
+from database import create_payment, update_payment_status, add_tokens, set_unlimited_status, get_payment
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +60,14 @@ class FreePaymentService:
         # Сохраняем в базу
         await create_payment(payment)
         
-        # Симулируем успешный платеж и сразу начисляем токены
-        await self.check_payment_status(payment_id)
+        # Симулируем платежную ссылку YooKassa (используем dummy URL)
+        # В реальной YooKassa это был бы URL для перехода на страницу оплаты
+        payment_url = f"https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}"
         
         logger.info(f"✅ Создан бесплатный платеж {payment_id} для пользователя {user_id}")
+        logger.info(f"🔗 URL для подтверждения: {payment_url}")
         
-        # URL для возврата к боту
-        return_url = f"https://t.me/{BOT_USERNAME}"
-        
-        return return_url, payment
+        return payment_url, payment
     
     async def create_payment(self, amount: float, description: str) -> Tuple[str, str]:
         """
@@ -105,6 +105,22 @@ class FreePaymentService:
         Returns:
             str: Статус платежа
         """
+        # Получаем платеж из базы данных
+        payment = await get_payment(payment_id)
+        
+        if not payment:
+            logger.warning(f"⚠️ Платеж {payment_id} не найден в базе данных")
+            return None
+            
+        # Если платеж уже обработан, просто возвращаем его статус
+        if payment.status == 'succeeded':
+            logger.info(f"✅ Платеж {payment_id} уже имеет статус succeeded")
+            return 'succeeded'
+            
+        # Имитируем небольшую задержку, как будто проверяем статус на сервере YooKassa
+        time.sleep(0.5)
+        
+        # В бесплатной версии всегда считаем платеж успешным
         # Обновляем статус платежа в базе
         payment = await update_payment_status(payment_id, 'succeeded')
         
