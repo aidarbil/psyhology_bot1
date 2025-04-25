@@ -122,9 +122,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 f"💎 Ваш текущий баланс: {user.tokens} Майндтокенов."
             )
     
-    # Проверяем реферальный код
-    if context.args and context.args[0].startswith('ref_'):
-        await process_referral_code(update, context)
+    # Проверка аргументов команды start
+    if context.args:
+        arg = context.args[0]
+        
+        # Обработка реферальной ссылки
+        if arg.startswith('ref_'):
+            await process_referral_code(update, context)
+        
+        # Обработка платежных ссылок
+        elif arg.startswith('payment_'):
+            payment_id = arg.replace('payment_', '')
+            logger.info(f"Получена платежная ссылка с ID платежа: {payment_id}")
+            
+            # Перенаправляем пользователя на проверку оплаты
+            await update.message.reply_text(
+                "💳 Вы перешли по платежной ссылке. Нажмите кнопку ниже, чтобы проверить статус платежа:",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ Проверить оплату", callback_data=f"check_payment:{payment_id}")]
+                ])
+            )
+            return
     
     # Показываем главное меню с описанием
     await show_main_menu(update, context, user, show_description=True)

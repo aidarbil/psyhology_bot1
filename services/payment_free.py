@@ -60,9 +60,9 @@ class FreePaymentService:
         # Сохраняем в базу
         await create_payment(payment)
         
-        # Симулируем платежную ссылку YooKassa (используем dummy URL)
-        # В реальной YooKassa это был бы URL для перехода на страницу оплаты
-        payment_url = f"https://yoomoney.ru/checkout/payments/v2/contract?orderId={payment_id}"
+        # Используем гарантированно рабочий URL с поддержкой в Telegram
+        # Используем формат, который точно работает в Telegram
+        payment_url = f"https://t.me/{BOT_USERNAME}?start=payment_{payment_id}"
         
         logger.info(f"✅ Создан бесплатный платеж {payment_id} для пользователя {user_id}")
         logger.info(f"🔗 URL для подтверждения: {payment_url}")
