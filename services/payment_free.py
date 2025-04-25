@@ -20,6 +20,55 @@ class FreePaymentService:
         self.payments = {}  # Словарь для хранения информации о платежах
         logger.info("Инициализирован бесплатный платежный сервис")
     
+    async def create_payment_link(self, user_id: int, tariff: str) -> Tuple[Optional[str], Optional[Payment]]:
+        """
+        Создает платежную ссылку для оплаты тарифа.
+        В бесплатной версии просто создает тестовый платеж и сразу начисляет токены.
+        
+        Args:
+            user_id: ID пользователя
+            tariff: ID тарифа
+            
+        Returns:
+            Tuple[str, Payment]: URL для подтверждения и объект платежа
+        """
+        logger.info(f"📝 Создание бесплатного платежа для пользователя {user_id}, тариф: {tariff}")
+        
+        if tariff not in TARIFFS:
+            logger.error(f"❌ Тариф {tariff} не найден в конфигурации")
+            logger.info(f"Доступные тарифы: {list(TARIFFS.keys())}")
+            return None, None
+        
+        tariff_data = TARIFFS[tariff]
+        amount = tariff_data['price']
+        tokens = tariff_data['tokens']
+        
+        # Генерируем уникальный ID платежа
+        payment_id = str(uuid.uuid4())
+        
+        # Создаем запись платежа
+        payment = Payment(
+            payment_id=payment_id,
+            user_id=user_id,
+            tariff=tariff,
+            amount=amount,
+            tokens=tokens,
+            status='pending'
+        )
+        
+        # Сохраняем в базу
+        await create_payment(payment)
+        
+        # Симулируем успешный платеж и сразу начисляем токены
+        await self.check_payment_status(payment_id)
+        
+        logger.info(f"✅ Создан бесплатный платеж {payment_id} для пользователя {user_id}")
+        
+        # URL для возврата к боту
+        return_url = f"https://t.me/{BOT_USERNAME}"
+        
+        return return_url, payment
+    
     async def create_payment(self, amount: float, description: str) -> Tuple[str, str]:
         """
         Создает бесплатный платеж и возвращает его идентификатор и URL оплаты.
@@ -45,6 +94,31 @@ class FreePaymentService:
         logger.info(f"Создан бесплатный платеж: {payment_id}, сумма: {amount}, описание: {description}")
         return payment_id, confirmation_url
     
+    async def check_payment_status(self, payment_id: str) -> Optional[str]:
+        """
+        Проверяет статус платежа и начисляет токены пользователю.
+        В бесплатной версии все платежи всегда успешны.
+        
+        Args:
+            payment_id: ID платежа
+            
+        Returns:
+            str: Статус платежа
+        """
+        # Обновляем статус платежа в базе
+        payment = await update_payment_status(payment_id, 'succeeded')
+        
+        if payment:
+            # Начисляем токены пользователю в зависимости от тарифа
+            if payment.tokens == -1:  # Безлимитный тариф
+                await set_unlimited_status(payment.user_id, True)
+                logger.info(f"🎉 Пользователю {payment.user_id} активирован безлимитный тариф")
+            else:
+                await add_tokens(payment.user_id, payment.tokens)
+                logger.info(f"🎉 Пользователю {payment.user_id} начислено {payment.tokens} токенов")
+        
+        return 'succeeded'
+    
     async def check_payment(self, payment_id: str) -> Dict[str, Any]:
         """
         Проверяет статус бесплатного платежа.
@@ -68,6 +142,24 @@ class FreePaymentService:
             "amount": self.payments[payment_id]["amount"],
             "description": self.payments[payment_id]["description"]
         }
+    
+    async def process_payment_notification(self, payment_data: Dict) -> bool:
+        """
+        Обрабатывает уведомление от платежной системы.
+        В тестовой версии всегда считаем платежи успешными.
+        
+        Args:
+            payment_data: Данные уведомления
+            
+        Returns:
+            bool: True, если обработка прошла успешно
+        """
+        payment_id = payment_data.get('object', {}).get('id')
+        if not payment_id:
+            return False
+        
+        await self.check_payment_status(payment_id)
+        return True
     
     async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
         """
