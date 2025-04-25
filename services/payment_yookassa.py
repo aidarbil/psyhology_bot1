@@ -7,6 +7,7 @@ from typing import Dict, Optional, Tuple
 from datetime import datetime
 
 try:
+    import yookassa
     from yookassa import Configuration, Payment as YooKassaPayment
     from yookassa.domain.exceptions import ApiError, BadRequestError, AuthorizationError
     YOOKASSA_AVAILABLE = True
@@ -42,15 +43,18 @@ if YOOKASSA_AVAILABLE:
         
         if not shop_id or not secret_key:
             logger.error("❌ Отсутствуют настройки YUKASSA_SHOP_ID или YUKASSA_SECRET_KEY")
+            logger.error(f"YUKASSA_SHOP_ID: {shop_id}")
+            logger.error(f"YUKASSA_SECRET_KEY: {'Задан' if secret_key else 'Не задан'}")
             YOOKASSA_INITIALIZED = False
         else:
-            Configuration.account_id = shop_id
-            Configuration.secret_key = secret_key
+            # Явно инициализируем через объект библиотеки
+            yookassa.Configuration.account_id = shop_id
+            yookassa.Configuration.secret_key = secret_key
             
             # Проверим, что библиотека успешно инициализирована
             logger.info(f"✅ ЮKassa инициализирована с ID магазина: {shop_id}")
             logger.info(f"✅ Ключ: {secret_key[:4]}...{secret_key[-4:] if len(secret_key) > 8 else ''}")
-            # TODO: добавить тестовый запрос для проверки доступа
+            logger.info(f"✅ Configuration.account_id: {yookassa.Configuration.account_id}")
             YOOKASSA_INITIALIZED = True
     except Exception as e:
         logger.error(f"❌ Ошибка при инициализации ЮKassa: {str(e)}")
@@ -108,15 +112,15 @@ class PaymentService:
         logger.info(f"📝 Данные для создания платежа: {json.dumps(payment_data, ensure_ascii=False)}")
         
         try:
-            logger.info(f"📊 Создание тестового платежа для пользователя {user_id}, тариф: {tariff}")
+            logger.info(f"📊 Создание платежа для пользователя {user_id}, тариф: {tariff}")
             
             # Подробно логируем шаги для отладки
             logger.info(f"🔑 Идемпотентный ключ: {idempotence_key}")
-            logger.info(f"🏪 ID аккаунта ЮKassa: {Configuration.account_id}")
-            logger.info(f"🔒 Секретный ключ (маскированный): {Configuration.secret_key[:4]}...{Configuration.secret_key[-4:]}")
+            logger.info(f"🏪 ID аккаунта ЮKassa: {yookassa.Configuration.account_id}")
+            logger.info(f"🔒 Секретный ключ (маскированный): {yookassa.Configuration.secret_key[:4]}...{yookassa.Configuration.secret_key[-4:] if len(yookassa.Configuration.secret_key) > 8 else ''}")
             
-            # Создаем платеж
-            response = YooKassaPayment.create(payment_data, idempotence_key)
+            # Создаем платеж через глобальную библиотеку yookassa
+            response = yookassa.Payment.create(payment_data, idempotence_key)
             
             # Логируем ответ
             logger.info(f"✅ Получен ответ от ЮKassa: {response.json()}")
@@ -134,7 +138,7 @@ class PaymentService:
             )
             await create_payment(payment)
             
-            logger.info(f"✅ Создан тестовый платеж {response.id} для пользователя {user_id}")
+            logger.info(f"✅ Создан платеж {response.id} для пользователя {user_id}")
             logger.info(f"🔗 URL для подтверждения: {response.confirmation.confirmation_url}")
             
             return response.confirmation.confirmation_url, payment
@@ -217,7 +221,7 @@ class PaymentService:
             
         try:
             logger.info(f"🔍 Проверка статуса платежа {payment_id}")
-            response = YooKassaPayment.find_one(payment_id)
+            response = yookassa.Payment.find_one(payment_id)
             logger.info(f"✅ Получен статус платежа {payment_id}: {response.status}")
             return response.status
         except BadRequestError as e:
