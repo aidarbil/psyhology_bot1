@@ -6,10 +6,15 @@ load_dotenv()
 
 # Telegram Bot
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-BOT_USERNAME = os.getenv('BOT_USERNAME', 'psychologybilalov_bot')  # Имя пользователя бота
+BOT_USERNAME = os.getenv('BOT_USERNAME', 'tarodevruslanbot')  # Имя пользователя бота
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 CHANNEL_URL = os.getenv('CHANNEL_URL')
 ADMIN_IDS = list(map(int, os.getenv('ADMIN_IDS', '').split(',')))
+
+# Telegram Payments
+# Токен провайдера для тестовых платежей Telegram
+# Формат: 123456789:TEST:XXXXXXXXXX
+TELEGRAM_PROVIDER_TOKEN = os.getenv('TELEGRAM_PROVIDER_TOKEN', '381764678:TEST:121476').strip()
 
 # MongoDB
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')

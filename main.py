@@ -8,6 +8,7 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
+    PreCheckoutQueryHandler,
     filters,
     ContextTypes
 )
@@ -25,6 +26,8 @@ from handlers import (
     buy_tokens_callback,
     select_tariff_callback,
     check_payment_callback,
+    pre_checkout_handler,
+    successful_payment_handler,
     back_to_main_callback,
     check_subscription_callback,
     admin_command,
@@ -54,6 +57,12 @@ if not config.TELEGRAM_TOKEN:
     sys.exit(1)
 else:
     logger.info(f"TELEGRAM_TOKEN найден, длина: {len(config.TELEGRAM_TOKEN)}")
+
+# Проверяем наличие платежного токена
+if not hasattr(config, 'TELEGRAM_PROVIDER_TOKEN') or not config.TELEGRAM_PROVIDER_TOKEN:
+    logger.warning("TELEGRAM_PROVIDER_TOKEN не найден. Платежи через Telegram будут недоступны.")
+else:
+    logger.info(f"TELEGRAM_PROVIDER_TOKEN найден, платежи через Telegram активны")
 
 async def setup_webhook(app: Application) -> None:
     """Настройка вебхука для продакшн окружения"""
@@ -97,6 +106,10 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CallbackQueryHandler(admin_give_unlimited_callback, pattern="^admin_give_unlimited$"))
     app.add_handler(CallbackQueryHandler(admin_back_callback, pattern="^admin_back$"))
     
+    # Обработчики для Telegram Payments
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
+    
     # Обработчик всех текстовых сообщений
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
@@ -104,7 +117,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(MessageHandler(filters.TEXT & filters.COMMAND, handle_admin_commands))
 
 async def process_yukassa_notification(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик уведомлений от ЮKassa"""
+    """Обработчик уведомлений от ЮKassa (оставлен для совместимости)"""
     from services import payment_service
     
     try:

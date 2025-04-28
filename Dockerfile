@@ -5,7 +5,9 @@ WORKDIR /app
 # Установка необходимых зависимостей
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
     python3-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Копирование файлов проекта
