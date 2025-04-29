@@ -33,8 +33,8 @@ REFERRAL_BONUS_TOKENS = 10  # Бонусные токены за приглаш�
 TARIFFS = {
     'small': {'tokens': 50, 'price': 99, 'description': '5 вопросов'},
     'medium': {'tokens': 100, 'price': 150, 'description': '10 вопросов'},
-    'large': {'tokens': 500, 'price': 450, 'description': '50 вопросов'},
-    'unlimited': {'tokens': -1, 'price': 499, 'description': 'Безлимитное количество вопросов'}
+    'large': {'tokens': 500, 'price': 490, 'description': '50 вопросов'},
+    'unlimited': {'tokens': -1, 'price': 990, 'description': 'Безлимитное количество вопросов'}
 }
 
 # ЮKassa
