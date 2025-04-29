@@ -20,6 +20,7 @@ from database.operations import (
     get_user_by_referral_code,
     process_referral
 )
+from database.statistics import get_bot_statistics
 
 __all__ = [
     'User',
@@ -43,5 +44,6 @@ __all__ = [
     'get_all_reviews',
     'generate_referral_code',
     'get_user_by_referral_code',
-    'process_referral'
+    'process_referral',
+    'get_bot_statistics'
 ] 

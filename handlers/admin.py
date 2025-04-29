@@ -2,9 +2,13 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 import json
 from datetime import datetime, timedelta
+import logging
 
 import config
-from database import get_user, add_tokens, set_unlimited_status
+from database import get_user, add_tokens, set_unlimited_status, get_bot_statistics
+
+# Настройка логирования
+logger = logging.getLogger(__name__)
 
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /admin для админов бота"""
@@ -47,21 +51,24 @@ async def admin_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
     
-    # Здесь должен быть код для получения статистики из базы данных
-    # Например, количество пользователей, сообщений, платежей и т.д.
-    # Для примера используем заглушку
-    
-    stats_text = (
-        "📊 Статистика бота:\n\n"
-        "👥 Всего пользователей: ...\n"
-        "💬 Всего сообщений: ...\n"
-        "💰 Всего платежей: ...\n"
-        "💸 Общая сумма: ... ₽\n\n"
-        "За последние 24 часа:\n"
-        "👤 Новых пользователей: ...\n"
-        "💬 Сообщений: ...\n"
-        "💰 Платежей: ...\n"
-    )
+    # Получаем статистику из базы данных
+    try:
+        stats = await get_bot_statistics()
+        
+        stats_text = (
+            "📊 Статистика бота:\n\n"
+            f"👥 Всего пользователей: {stats['total_users']}\n"
+            f"💬 Всего сообщений: {stats['total_messages']}\n"
+            f"💰 Всего платежей: {stats['total_payments']}\n"
+            f"💸 Общая сумма: {stats['total_amount']} ₽\n\n"
+            f"За последние 24 часа:\n"
+            f"👤 Новых пользователей: {stats['new_users_24h']}\n"
+            f"💬 Сообщений: {stats['messages_24h']}\n"
+            f"💰 Платежей: {stats['payments_24h']}\n"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при получении статистики: {str(e)}")
+        stats_text = "❌ Ошибка при получении статистики. Проверьте логи сервера."
     
     keyboard = [
         [InlineKeyboardButton("🔙 Назад", callback_data="admin_back")]
