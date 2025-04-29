@@ -30,6 +30,7 @@ from handlers import (
     successful_payment_handler,
     back_to_main_callback,
     check_subscription_callback,
+    skip_subscription_callback,
     admin_command,
     admin_stats_callback,
     admin_give_tokens_callback,
@@ -93,6 +94,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CallbackQueryHandler(check_payment_callback, pattern="^check_payment:"))
     app.add_handler(CallbackQueryHandler(back_to_main_callback, pattern="^back_to_main$"))
     app.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="^check_subscription$"))
+    app.add_handler(CallbackQueryHandler(skip_subscription_callback, pattern="^skip_subscription$"))
     
     # Обработчики новых кнопок меню
     app.add_handler(CallbackQueryHandler(show_description, pattern="^show_description$"))

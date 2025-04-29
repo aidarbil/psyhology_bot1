@@ -103,24 +103,29 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # Создаем пользователя, если его нет в базе
     user = await get_or_create_user(user_id, username, first_name, last_name)
     
-    # Если пользователь новый (токены = 0) и не отмечен как подписанный
-    if user.tokens == 0 and not user.is_subscribed:
-        # Проверяем, подписан ли пользователь на канал
-        is_subscribed = await subscription_service.check_subscription(user_id)
-        if is_subscribed:
-            # Если подписан, начисляем токены и отмечаем как подписанного
-            logger.info(f"Пользователь {user_id} уже подписан на канал при первом входе, начисляем {config.FREE_TOKENS} токенов")
-            await add_tokens(user_id, config.FREE_TOKENS)
-            await set_subscription_status(user_id, True)
-            
-            # Получаем обновленные данные пользователя
-            user = await get_user(user_id)
-            
-            # Отправляем уведомление о бонусе
-            await update.message.reply_text(
-                f"🎁 Спасибо за подписку на наш канал! Вам начислено {config.FREE_TOKENS} Майндтокенов в подарок!\n"
-                f"💎 Ваш текущий баланс: {user.tokens} Майндтокенов."
-            )
+    # Проверяем, подписан ли пользователь на канал
+    is_subscribed = await subscription_service.check_subscription(user_id)
+    if not is_subscribed and not config.TEST_MODE and config.CHANNEL_ID:
+        # Если не подписан, предлагаем подписаться или пропустить
+        channel_link = subscription_service.get_channel_link()
+        
+        keyboard = [
+            [InlineKeyboardButton("📢 Подписаться на канал", url=channel_link)],
+            [InlineKeyboardButton("✅ Проверить подписку", callback_data="check_subscription")],
+            [InlineKeyboardButton("⏩ Пропустить подписку", callback_data="skip_subscription")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            text=(
+                "🔹 Для получения бесплатных токенов необходимо подписаться на канал Создателя.\n\n"
+                f"За подписку вы получите {config.FREE_TOKENS} Майндтокенов бесплатно!\n"
+                f"Этого хватит на {config.FREE_TOKENS // config.TOKENS_PER_MESSAGE} вопросов.\n\n"
+                "Вы можете подписаться сейчас или пропустить этот шаг."
+            ),
+            reply_markup=reply_markup
+        )
+        return
     
     # Проверка аргументов команды start
     if context.args:

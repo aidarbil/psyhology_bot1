@@ -25,7 +25,7 @@ AI_AGENT_URL = os.getenv('AI_AGENT_URL', 'https://api.bilalov.ai/api/message')
 AI_AGENT_ID = os.getenv('AI_AGENT_ID', 'ed3ca89f25ba41b1a5c6')
 
 # Токены
-FREE_TOKENS = 500  # Количество бесплатных токенов за подписку
+FREE_TOKENS = 50  # Количество бесплатных токенов за подписку
 TOKENS_PER_MESSAGE = 10  # Стоимость одного сообщения в токенах
 REFERRAL_BONUS_TOKENS = 10  # Бонусные токены за приглашенного пользователя
 

@@ -61,4 +61,18 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
                 f"Этого хватит на {config.FREE_TOKENS // config.TOKENS_PER_MESSAGE} вопросов."
             ),
             reply_markup=reply_markup
-        ) 
+        )
+
+async def skip_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик пропуска подписки на канал"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    user = await get_user(user_id)
+    
+    # Отмечаем, что пользователь пропустил подписку
+    await set_subscription_status(user_id, False)
+    
+    # Показываем главное меню
+    await show_main_menu(update, context, user, show_description=True) 
