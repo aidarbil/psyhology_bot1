@@ -9,7 +9,7 @@ from handlers.payment import (
     successful_payment_handler
 )
 from handlers.chat import start_chat_callback
-from handlers.subscription import check_subscription_callback
+from handlers.subscription import check_subscription_callback, skip_subscription_callback
 from handlers.admin import (
     admin_command,
     admin_stats_callback,
@@ -32,6 +32,7 @@ __all__ = [
     'successful_payment_handler',
     'back_to_main_callback',
     'check_subscription_callback',
+    'skip_subscription_callback',
     'admin_command',
     'admin_stats_callback',
     'admin_give_tokens_callback',
