@@ -14,9 +14,9 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Запускаем миграцию
+# Запускаем миграцию как модуль
 echo -e "${YELLOW}Выполнение миграции...${NC}"
-python3 database/migration.py
+python3 -m database.migration
 
 # Проверяем статус
 if [ $? -eq 0 ]; then
