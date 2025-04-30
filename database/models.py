@@ -17,7 +17,8 @@ class User:
         chat_history: Optional[List[Dict]] = None,
         referral_code: Optional[str] = None,
         referred_by: Optional[int] = None,
-        referral_count: int = 0
+        referral_count: int = 0,
+        has_received_subscription_bonus: bool = False
     ):
         self.user_id = user_id
         self.username = username
@@ -32,6 +33,7 @@ class User:
         self.referral_code = referral_code
         self.referred_by = referred_by
         self.referral_count = referral_count
+        self.has_received_subscription_bonus = has_received_subscription_bonus
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'User':
@@ -48,7 +50,8 @@ class User:
             chat_history=data.get('chat_history', []),
             referral_code=data.get('referral_code'),
             referred_by=data.get('referred_by'),
-            referral_count=data.get('referral_count', 0)
+            referral_count=data.get('referral_count', 0),
+            has_received_subscription_bonus=data.get('has_received_subscription_bonus', False)
         )
     
     def to_dict(self) -> Dict:
@@ -65,7 +68,8 @@ class User:
             'chat_history': self.chat_history,
             'referral_code': self.referral_code,
             'referred_by': self.referred_by,
-            'referral_count': self.referral_count
+            'referral_count': self.referral_count,
+            'has_received_subscription_bonus': self.has_received_subscription_bonus
         }
 
 # Модель платежа

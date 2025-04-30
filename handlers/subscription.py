@@ -19,10 +19,8 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
     
     if is_subscribed or config.TEST_MODE:  # В тестовом режиме или при наличии подписки
         user = await get_user(user_id)
-        if not user.is_subscribed:  # Если бонус еще не был получен
-            # Начисляем бонусные токены
-            await add_tokens(user_id, config.FREE_TOKENS)
-            # Отмечаем что подписка получена
+        if not user.has_received_subscription_bonus:  # Если бонус еще не был получен
+            # Начисляем бонусные токены и отмечаем получение бонуса
             await set_subscription_status(user_id, True)
             
             # Получаем обновленные данные пользователя
@@ -42,7 +40,10 @@ async def check_subscription_callback(update: Update, context: ContextTypes.DEFA
             await asyncio.sleep(2)
             await show_main_menu(update, context, user, show_description=True)
         else:
-            # Если бонус уже был получен, просто показываем главное меню
+            # Если бонус уже был получен, просто обновляем статус подписки и показываем главное меню
+            if not user.is_subscribed:
+                await set_subscription_status(user_id, True)
+                user = await get_user(user_id)
             await show_main_menu(update, context, user, show_description=True)
     else:
         # Пользователь не подписан, предлагаем подписаться

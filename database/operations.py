@@ -79,9 +79,10 @@ async def set_subscription_status(user_id: int, is_subscribed: bool) -> User:
     """Установить статус подписки пользователя"""
     user = await get_user(user_id)
     if user:
-        # Если пользователь подписался и ещё не получал бонус
-        if is_subscribed and not user.is_subscribed:
-            user.tokens = config.FREE_TOKENS
+        # Если пользователь подписался и ещё не получал бонус за подписку
+        if is_subscribed and not user.has_received_subscription_bonus:
+            user.tokens += config.FREE_TOKENS
+            user.has_received_subscription_bonus = True
         user.is_subscribed = is_subscribed
         await update_user(user)
     return user
